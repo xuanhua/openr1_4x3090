@@ -95,12 +95,15 @@ def main(script_args, training_args, model_args):
         logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
 
     if "wandb" in training_args.report_to:
-        init_wandb_training(training_args)
+        #init_wandb_training(training_args)
+        training_args.report_to = []
 
     ################
     # Load datasets
     ################
-    dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    # Set streaming=True to avoid loading all dataset 
+    # https://discuss.huggingface.co/t/loading-just-part-of-dataset/38463/5
+    dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, streaming=True)
 
     ################
     # Load tokenizer
@@ -126,6 +129,9 @@ def main(script_args, training_args, model_args):
         quantization_config=quantization_config,
     )
     training_args.model_init_kwargs = model_kwargs
+    #This is for fixing the bugs caused by stream mode, here the value 10000 is just a arbtriry value, fixed later. TODO: maybe you should set it to the size of the dataset.
+    #https://github.com/huggingface/datasets/issues/5773
+    training_args.max_steps = 10000
 
     ############################
     # Initialize the SFT Trainer
